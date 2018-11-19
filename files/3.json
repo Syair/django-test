@@ -1,0 +1,9 @@
+[
+    {
+        "date": "Jan 10, 2015 13:10:59",
+        "filename": "virus-big.exe",
+        "action": "files-deleted",
+        "submit-type": "FG300B3910602113/root",
+        "rating": "malicious"
+    }
+]

@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Load Meta</title>
+        <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+        <script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.8.4/moment.min.js"></script>
+        <script src="https://cdn.datatables.net/plug-ins/1.10.19/sorting/datetime-moment.js"></script>
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css">
+        <style>
+            .toolbar {
+                float: left;
+            }
+            tr.rating-clean {
+                background-color: greenyellow !important;
+            }
+            tr.rating-low-risk {
+                background-color: yellow !important;
+            }
+            tr.rating-medium-risk {
+                background-color: orange !important;
+            }
+            tr.rating-high-risk {
+                background-color: orangered !important;
+            }
+            tr.rating-malicious {
+                background-color: red !important;
+            }
+        </style>
+    </head>
+
+    <body>
+        <button id="loadFiles">Load Meta Files</button>
+        <table id="threatsTable" class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>File Name</th>
+                    <th>Action</th>
+                    <th>Submit Type</th>
+                    <th>Rating</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        <script>
+            var refreshInterval = 86400000; // 24-hours as default
+            function changeInterval() {
+                refreshInterval = $('#refreshInterval')[0].value;
+            }
+
+            function reloadTable() {
+                $('#threatsTable').DataTable( {
+                    "ajax": {
+                        "url": "/loadMeta/load",
+                        "dataSrc": ""
+                    },
+
+                    "columns": [
+                        { "data": "date" },
+                        { "data": "filename" },
+                        { "data": "action" },
+                        { "data": "submit-type" },
+                        { "data": "rating" }
+                    ],
+
+                    createdRow: function (row, data, index) {
+                        var rating = data.rating.toLowerCase()
+                        switch(rating) {
+                            case "clean":
+                                $(row).addClass("rating-clean");
+                                break;
+                            case "low-risk":
+                                $(row).addClass("rating-low-risk");
+                                break;
+                            case "medium-risk":
+                                $(row).addClass("rating-medium-risk");
+                                break;
+                            case "high-risk":
+                                $(row).addClass("rating-high-risk");
+                                break;
+                            case "malicious":
+                                $(row).addClass("rating-malicious");
+                                break;
+                            default:
+                        }
+                    },
+                    dom: '<"toolbar">frtip',
+                    fnInitComplete: function(){
+                        $('div.toolbar').html(`<div>Refresh Period:
+                        <select id='refreshInterval' onchange="changeInterval()">
+                            <option selected value="86400000">24-hours</option>
+                            <option value="604800000">7 days</option>
+                            <option value="2419200000">4 weeks</option>
+                        </select>
+                        </div>`);
+                        $("#refreshInterval").val(refreshInterval);
+                    }
+                });
+            }
+            function loop() {
+                $.ajax({
+                    url: "/loadMeta/load",
+                    success: function(result) {
+                        current = $('#threatsTable').dataTable().fnGetData();
+                        if (JSON.stringify(result) !== JSON.stringify(current))
+                            alert('There is file change, please reload the table.')
+                    }
+                });
+                setTimeout(loop, refreshInterval);
+            }
+            $(document).ready(function() {
+                $.fn.dataTable.moment('MMM D, YYYY HH:mm:ss');
+                reloadTable();
+                setTimeout(loop, refreshInterval);
+            } );
+            $("#loadFiles").click(function() {
+                $.ajax({
+                    url: "/loadMeta/load",
+                    success: function(result) {
+                        $("#threatsTable").DataTable().destroy();
+                        reloadTable();
+                    }
+                });
+            });
+            </script>
+    </body>
+</html>
